@@ -218,37 +218,90 @@ export function createOrUpdateCustomer(
   return [...customers, newCustomer];
 }
 
-export function generateReportData(
-  transactions: TransactionRecord[],
-  customers: CustomerRecord[],
-): ReportData {
-  const totalIncome = transactions.reduce((sum, t) => sum + t.finalPrice, 0);
-  const totalServices = transactions.length;
+export function getTodayDateString(): string {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = (today.getMonth() + 1).toString().padStart(2, "0");
+  const d = today.getDate().toString().padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
+export function isToday(ts: number): boolean {
+  const today = new Date();
+  const date = new Date(ts);
+  return (
+    today.getFullYear() === date.getFullYear() &&
+    today.getMonth() === date.getMonth() &&
+    today.getDate() === date.getDate()
+  );
+}
+
+function calculateStatsFromTransactions(txList: TransactionRecord[]): {
+  income: number;
+  serviceCount: number;
+  serviceBreakdown: Record<ServiceType, number>;
+  speciesBreakdown: Record<PetSpecies, number>;
+  averageSatisfaction: number;
+  discountTotal: number;
+  birthdayCount: number;
+  regularCount: number;
+  uniqueCustomerIds: Set<string>;
+} {
+  const income = txList.reduce((sum, t) => sum + t.finalPrice, 0);
+  const serviceCount = txList.length;
   const serviceBreakdown = { bath: 0, styling: 0, spa: 0 } as Record<
     ServiceType,
     number
   >;
   const speciesBreakdown = {} as Record<PetSpecies, number>;
   let satSum = 0;
+  let discountTotal = 0;
+  let birthdayCount = 0;
+  let regularCount = 0;
+  const uniqueCustomerIds = new Set<string>();
 
-  for (const t of transactions) {
+  for (const t of txList) {
     serviceBreakdown[t.service] = (serviceBreakdown[t.service] || 0) + 1;
     speciesBreakdown[t.species] = (speciesBreakdown[t.species] || 0) + 1;
     if (t.satisfaction === "very_satisfied") satSum += 3;
     else if (t.satisfaction === "satisfied") satSum += 2;
     else satSum += 1;
+    discountTotal += t.discount;
+    if (t.isBirthday) birthdayCount++;
+    if (t.isRegular) regularCount++;
+    uniqueCustomerIds.add(t.customerId);
   }
 
+  return {
+    income,
+    serviceCount,
+    serviceBreakdown,
+    speciesBreakdown,
+    averageSatisfaction: serviceCount > 0 ? satSum / serviceCount / 3 : 0,
+    discountTotal,
+    birthdayCount,
+    regularCount,
+    uniqueCustomerIds,
+  };
+}
+
+export function generateReportData(
+  transactions: TransactionRecord[],
+  customers: CustomerRecord[],
+): ReportData {
+  const todayTxs = transactions.filter((t) => isToday(t.timestamp));
+  const totalStats = calculateStatsFromTransactions(transactions);
+  const todayStats = calculateStatsFromTransactions(todayTxs);
+
   let topSpecies: { species: PetSpecies; count: number } | null = null;
-  for (const [sp, count] of Object.entries(speciesBreakdown)) {
+  for (const [sp, count] of Object.entries(totalStats.speciesBreakdown)) {
     if (!topSpecies || count > topSpecies.count) {
       topSpecies = { species: sp as PetSpecies, count };
     }
   }
 
   const topServices = (
-    Object.entries(serviceBreakdown) as [ServiceType, number][]
+    Object.entries(totalStats.serviceBreakdown) as [ServiceType, number][]
   )
     .sort((a, b) => b[1] - a[1])
     .map(([service, count]) => ({ service, count }));
@@ -272,17 +325,29 @@ export function generateReportData(
     .slice(0, 8);
 
   return {
-    totalIncome,
-    totalServices,
-    serviceBreakdown,
-    speciesBreakdown,
+    totalIncome: totalStats.income,
+    totalServices: totalStats.serviceCount,
+    serviceBreakdown: totalStats.serviceBreakdown,
+    speciesBreakdown: totalStats.speciesBreakdown,
     topSpecies,
     topServices,
     recentTransactions,
     birthdayUpcoming,
     regularCustomers,
     uniqueCustomers: customers.length,
-    averageSatisfaction: totalServices > 0 ? satSum / totalServices / 3 : 0,
+    averageSatisfaction: totalStats.averageSatisfaction,
+    today: {
+      income: todayStats.income,
+      serviceCount: todayStats.serviceCount,
+      serviceBreakdown: todayStats.serviceBreakdown,
+      speciesBreakdown: todayStats.speciesBreakdown,
+      uniqueCustomers: todayStats.uniqueCustomerIds.size,
+      averageSatisfaction: todayStats.averageSatisfaction,
+      discountTotal: todayStats.discountTotal,
+      birthdayCount: todayStats.birthdayCount,
+      regularCount: todayStats.regularCount,
+    },
+    dateString: getTodayDateString(),
   };
 }
 

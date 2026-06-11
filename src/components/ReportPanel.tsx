@@ -1,7 +1,25 @@
 import { useGameStore } from "../store/gameStore";
-import { SERVICE_DATA, SPECIES_DATA, PetSpecies, ServiceType } from "../utils/petData";
+import {
+  SERVICE_DATA,
+  SPECIES_DATA,
+  PetSpecies,
+  ServiceType,
+} from "../utils/petData";
 import { getRegularDiscountTier } from "../utils/gameLogic";
-import { X, BarChart3, TrendingUp, Users, Cake, Star, Clock, Coins, Heart } from "lucide-react";
+import {
+  X,
+  BarChart3,
+  TrendingUp,
+  Users,
+  Cake,
+  Star,
+  Clock,
+  Coins,
+  Heart,
+  Calendar,
+  Sparkles,
+  TrendingDown,
+} from "lucide-react";
 
 export default function ReportPanel() {
   const showReportPanel = useGameStore((s) => s.showReportPanel);
@@ -14,17 +32,31 @@ export default function ReportPanel() {
 
   const report = getReportData();
   const satPercent = Math.round(report.averageSatisfaction * 100);
+  const todaySatPercent = Math.round(report.today.averageSatisfaction * 100);
 
   const formatTime = (ts: number) => {
     const d = new Date(ts);
     return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
-  const maxServiceCount = Math.max(...Object.values(report.serviceBreakdown), 1);
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-");
+    return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+  };
+
+  const maxServiceCount = Math.max(
+    ...Object.values(report.serviceBreakdown),
+    1,
+  );
+  const todayMaxServiceCount = Math.max(
+    ...Object.values(report.today.serviceBreakdown),
+    1,
+  );
   const topSpeciesEntries = Object.entries(report.speciesBreakdown)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  const maxSpeciesCount = topSpeciesEntries.length > 0 ? topSpeciesEntries[0][1] : 1;
+  const maxSpeciesCount =
+    topSpeciesEntries.length > 0 ? topSpeciesEntries[0][1] : 1;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -43,24 +75,110 @@ export default function ReportPanel() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 text-[120px] opacity-10 leading-none -mt-4 -mr-4">
+              💰
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-5 h-5" />
+                <span className="font-bold text-lg">
+                  今日经营 · {formatDate(report.dateString)}
+                </span>
+                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {report.today.serviceCount} 单
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-6">
+                <div>
+                  <div className="text-white/80 text-sm mb-1 flex items-center gap-1">
+                    <Coins className="w-4 h-4" /> 今日收入
+                  </div>
+                  <div className="text-4xl font-bold tabular-nums flex items-baseline gap-1">
+                    {report.today.income}
+                    <span className="text-lg font-normal opacity-80">💰</span>
+                  </div>
+                  <div className="text-xs text-white/70 mt-1">
+                    累计 {report.totalIncome} 💰
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/80 text-sm mb-1 flex items-center gap-1">
+                    <TrendingUp className="w-4 h-4" /> 服务量
+                  </div>
+                  <div className="text-4xl font-bold tabular-nums">
+                    {report.today.serviceCount}
+                    <span className="text-lg font-normal opacity-80"> 次</span>
+                  </div>
+                  <div className="text-xs text-white/70 mt-1">
+                    累计 {report.totalServices} 次
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/80 text-sm mb-1 flex items-center gap-1">
+                    <Users className="w-4 h-4" /> 到店客户
+                  </div>
+                  <div className="text-4xl font-bold tabular-nums">
+                    {report.today.uniqueCustomers}
+                    <span className="text-lg font-normal opacity-80"> 位</span>
+                  </div>
+                  <div className="text-xs text-white/70 mt-1">
+                    熟客 {report.today.regularCount} 位 ⭐
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/80 text-sm mb-1 flex items-center gap-1">
+                    <Heart className="w-4 h-4" /> 今日满意度
+                  </div>
+                  <div className="text-4xl font-bold tabular-nums">
+                    {todaySatPercent}
+                    <span className="text-lg font-normal opacity-80">%</span>
+                  </div>
+                  <div className="text-xs text-white/70 mt-1 flex items-center gap-1">
+                    {report.today.discountTotal > 0 && (
+                      <span className="bg-white/20 px-1.5 py-0.5 rounded-full">
+                        优惠 -{report.today.discountTotal}
+                      </span>
+                    )}
+                    {report.today.birthdayCount > 0 && (
+                      <span className="bg-white/20 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        🎂 {report.today.birthdayCount}位
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {report.today.serviceCount === 0 && (
+                <div className="mt-4 bg-white/10 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  今天还没有服务记录，快开始营业吧~
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-4 border-2 border-amber-200">
               <div className="flex items-center gap-2 text-amber-600 mb-2">
                 <Coins className="w-5 h-5" />
-                <span className="text-sm font-medium">总收入</span>
+                <span className="text-sm font-medium">累计收入</span>
               </div>
               <div className="text-3xl font-bold text-amber-800 tabular-nums">
                 💰 {report.totalIncome}
               </div>
               <div className="text-xs text-amber-500 mt-1">
-                平均单客 {report.totalServices > 0 ? Math.round(report.totalIncome / report.totalServices) : 0} 💰
+                平均单客{" "}
+                {report.totalServices > 0
+                  ? Math.round(report.totalIncome / report.totalServices)
+                  : 0}{" "}
+                💰
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 border-2 border-blue-200">
               <div className="flex items-center gap-2 text-blue-600 mb-2">
                 <TrendingUp className="w-5 h-5" />
-                <span className="text-sm font-medium">总服务量</span>
+                <span className="text-sm font-medium">累计服务量</span>
               </div>
               <div className="text-3xl font-bold text-blue-800 tabular-nums">
                 {report.totalServices} 次
@@ -92,7 +210,13 @@ export default function ReportPanel() {
                 {satPercent}%
               </div>
               <div className="text-xs text-pink-500 mt-1">
-                {satPercent >= 80 ? "😍 非常棒！" : satPercent >= 60 ? "😊 不错哦" : satPercent >= 40 ? "😐 加油" : "😡 需改进"}
+                {satPercent >= 80
+                  ? "😍 非常棒！"
+                  : satPercent >= 60
+                    ? "😊 不错哦"
+                    : satPercent >= 40
+                      ? "😐 加油"
+                      : "😡 需改进"}
               </div>
             </div>
           </div>
@@ -109,19 +233,20 @@ export default function ReportPanel() {
                 {(["bath", "styling", "spa"] as ServiceType[]).map((svc) => {
                   const info = SERVICE_DATA[svc];
                   const count = report.serviceBreakdown[svc] || 0;
-                  const pct = maxServiceCount > 0 ? (count / maxServiceCount) * 100 : 0;
+                  const pct =
+                    maxServiceCount > 0 ? (count / maxServiceCount) * 100 : 0;
                   const revenue = count * info.price;
                   return (
                     <div key={svc}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{info.emoji}</span>
-                          <span className="font-medium text-gray-700">{info.name}</span>
+                          <span className="font-medium text-gray-700">
+                            {info.name}
+                          </span>
                         </div>
                         <div className="flex items-center gap-3 text-sm">
-                          <span className="text-gray-500">
-                            💰 {revenue}
-                          </span>
+                          <span className="text-gray-500">💰 {revenue}</span>
                           <span className="font-bold text-indigo-700 tabular-nums">
                             {count} 次
                           </span>
@@ -162,11 +287,17 @@ export default function ReportPanel() {
                           <div className="flex items-center gap-2">
                             <span className="text-lg w-6">{medals[idx]}</span>
                             <span className="text-2xl">{info.emoji}</span>
-                            <span className="font-medium text-gray-700">{info.name}</span>
+                            <span className="font-medium text-gray-700">
+                              {info.name}
+                            </span>
                             {info.type === "cat" ? (
-                              <span className="text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">猫</span>
+                              <span className="text-xs bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-full">
+                                猫
+                              </span>
                             ) : (
-                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">狗</span>
+                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                                狗
+                              </span>
                             )}
                           </div>
                           <span className="font-bold text-orange-700 tabular-nums">
@@ -193,7 +324,9 @@ export default function ReportPanel() {
                 <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center">
                   <Cake className="w-4 h-4 text-rose-600" />
                 </div>
-                <h3 className="font-bold text-rose-800">🎂 生日提醒（7天内）</h3>
+                <h3 className="font-bold text-rose-800">
+                  🎂 生日提醒（7天内）
+                </h3>
               </div>
               {report.birthdayUpcoming.length === 0 ? (
                 <div className="text-center py-6 text-gray-400 text-sm">
@@ -211,12 +344,18 @@ export default function ReportPanel() {
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{c.emoji}</span>
                           <div>
-                            <div className="font-bold text-gray-800">{c.name}</div>
-                            <div className="text-xs text-gray-500">{info.name} · 消费{c.totalSpent}💰</div>
+                            <div className="font-bold text-gray-800">
+                              {c.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {info.name} · 消费{c.totalSpent}💰
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-bold text-rose-600">{c.birthday}</div>
+                          <div className="text-sm font-bold text-rose-600">
+                            {c.birthday}
+                          </div>
                           <div className="text-xs text-rose-400 flex items-center gap-1">
                             <Cake className="w-3 h-3" /> 生日特惠85折
                           </div>
@@ -250,20 +389,28 @@ export default function ReportPanel() {
                         className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl border border-amber-200"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-amber-600 font-bold w-5 text-sm">#{idx + 1}</span>
+                          <span className="text-amber-600 font-bold w-5 text-sm">
+                            #{idx + 1}
+                          </span>
                           <span className="text-2xl">{c.emoji}</span>
                           <div>
                             <div className="font-bold text-gray-800 flex items-center gap-1">
                               {c.name}
                               {c.totalVisits >= 10 && <span>👑</span>}
                             </div>
-                            <div className="text-xs text-gray-500">{info.name} · 到店{c.totalVisits}次</div>
+                            <div className="text-xs text-gray-500">
+                              {info.name} · 到店{c.totalVisits}次
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-bold text-amber-700">{c.totalSpent} 💰</div>
+                          <div className="text-sm font-bold text-amber-700">
+                            {c.totalSpent} 💰
+                          </div>
                           {label && (
-                            <div className="text-xs text-amber-500 font-medium">{label}</div>
+                            <div className="text-xs text-amber-500 font-medium">
+                              {label}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -296,8 +443,12 @@ export default function ReportPanel() {
                       <th className="text-right py-2 px-2 font-medium">原价</th>
                       <th className="text-right py-2 px-2 font-medium">优惠</th>
                       <th className="text-right py-2 px-2 font-medium">实收</th>
-                      <th className="text-center py-2 px-2 font-medium">满意度</th>
-                      <th className="text-center py-2 px-2 font-medium">标签</th>
+                      <th className="text-center py-2 px-2 font-medium">
+                        满意度
+                      </th>
+                      <th className="text-center py-2 px-2 font-medium">
+                        标签
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,7 +466,9 @@ export default function ReportPanel() {
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-1.5">
                               <span>{spInfo.emoji}</span>
-                              <span className="font-medium text-slate-700">{t.petName}</span>
+                              <span className="font-medium text-slate-700">
+                                {t.petName}
+                              </span>
                             </div>
                           </td>
                           <td className="py-2 px-2">
@@ -333,17 +486,25 @@ export default function ReportPanel() {
                             {t.finalPrice} 💰
                           </td>
                           <td className="py-2 px-2 text-center">
-                            {t.satisfaction === "very_satisfied" && <span>😍</span>}
+                            {t.satisfaction === "very_satisfied" && (
+                              <span>😍</span>
+                            )}
                             {t.satisfaction === "satisfied" && <span>😊</span>}
-                            {t.satisfaction === "unsatisfied" && <span>😡</span>}
+                            {t.satisfaction === "unsatisfied" && (
+                              <span>😡</span>
+                            )}
                           </td>
                           <td className="py-2 px-2 text-center">
                             <div className="flex items-center justify-center gap-1">
                               {t.isRegular && (
-                                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">⭐熟客</span>
+                                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                                  ⭐熟客
+                                </span>
                               )}
                               {t.isBirthday && (
-                                <span className="text-xs bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full">🎂生日</span>
+                                <span className="text-xs bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full">
+                                  🎂生日
+                                </span>
                               )}
                             </div>
                           </td>
@@ -360,8 +521,16 @@ export default function ReportPanel() {
         <div className="px-6 py-4 border-t-2 border-slate-100 bg-slate-50 rounded-b-3xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-500">
-              📊 统计了 <span className="font-bold text-slate-700">{customers.length}</span> 位客户，
-              <span className="font-bold text-slate-700"> {transactions.length}</span> 笔交易
+              📊 统计了{" "}
+              <span className="font-bold text-slate-700">
+                {customers.length}
+              </span>{" "}
+              位客户，
+              <span className="font-bold text-slate-700">
+                {" "}
+                {transactions.length}
+              </span>{" "}
+              笔交易
             </div>
             <button
               onClick={() => setShowReportPanel(false)}

@@ -69,6 +69,18 @@ export interface DailyReport {
   regularCustomerCount: number;
 }
 
+export interface DailyStats {
+  income: number;
+  serviceCount: number;
+  serviceBreakdown: Record<ServiceType, number>;
+  speciesBreakdown: Record<PetSpecies, number>;
+  uniqueCustomers: number;
+  averageSatisfaction: number;
+  discountTotal: number;
+  birthdayCount: number;
+  regularCount: number;
+}
+
 export interface ReportData {
   totalIncome: number;
   totalServices: number;
@@ -81,6 +93,8 @@ export interface ReportData {
   regularCustomers: CustomerRecord[];
   uniqueCustomers: number;
   averageSatisfaction: number;
+  today: DailyStats;
+  dateString: string;
 }
 
 export interface GroomingStation {
